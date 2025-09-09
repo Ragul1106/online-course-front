@@ -15,14 +15,26 @@ export default function CoursePage() {
   const [selectedInstructorId, setSelectedInstructorId] = useState("");
   const [showForm, setShowForm] = useState(false);
 
+  // ✅ Safe array handling
   const loadInstructors = async () => {
-    const { data } = await listInstructors();
-    setInstructors(data);
+    try {
+      const { data } = await listInstructors();
+      // handle if API returns object instead of array
+      setInstructors(Array.isArray(data) ? data : data.instructors || []);
+    } catch (err) {
+      console.error("Failed to load instructors:", err);
+      setInstructors([]);
+    }
   };
 
   const loadCourses = async (instructorId) => {
-    const { data } = await listCourses(instructorId || undefined);
-    setCourses(data);
+    try {
+      const { data } = await listCourses(instructorId || undefined);
+      setCourses(Array.isArray(data) ? data : data.courses || []);
+    } catch (err) {
+      console.error("Failed to load courses:", err);
+      setCourses([]);
+    }
   };
 
   useEffect(() => {
@@ -31,36 +43,49 @@ export default function CoursePage() {
   }, []);
 
   const handleCreateCourse = async (payload) => {
-    await createCourse(payload);
-    await loadCourses(selectedInstructorId || undefined);
-    setShowForm(false);
+    try {
+      await createCourse(payload);
+      await loadCourses(selectedInstructorId || undefined);
+      setShowForm(false);
+    } catch (err) {
+      console.error("Failed to create course:", err);
+    }
   };
 
   const handleUpdateCourse = async (id, payload) => {
-    await updateCourse(id, payload);
-    await loadCourses(selectedInstructorId || undefined);
+    try {
+      await updateCourse(id, payload);
+      await loadCourses(selectedInstructorId || undefined);
+    } catch (err) {
+      console.error("Failed to update course:", err);
+    }
   };
 
   const handleDeleteCourse = async (id) => {
-    await deleteCourse(id);
-    await loadCourses(selectedInstructorId || undefined);
+    try {
+      await deleteCourse(id);
+      await loadCourses(selectedInstructorId || undefined);
+    } catch (err) {
+      console.error("Failed to delete course:", err);
+    }
   };
 
   const handleFilterByInstructor = async (e) => {
     const val = e.target.value;
     setSelectedInstructorId(val);
-    await loadCourses(val ? val : undefined);
+    await loadCourses(val || undefined);
   };
 
   return (
-    <div className=" mx-auto px-6 py-10 font-sans bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 min-h-screen">
-    
+    <div className="mx-auto px-6 py-10 font-sans bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 min-h-screen">
       <h1 className="text-4xl font-extrabold text-purple-700 mb-8 text-center">
         🎓 Our Courses
       </h1>
 
       <div className="mb-6 flex flex-col md:flex-row items-center justify-center gap-4">
-        <label className="font-medium text-gray-700 text-lg">Filter by Instructor:</label>
+        <label className="font-medium text-gray-700 text-lg">
+          Filter by Instructor:
+        </label>
         <select
           value={selectedInstructorId}
           onChange={handleFilterByInstructor}
@@ -85,6 +110,7 @@ export default function CoursePage() {
         </button>
       </div>
 
+      {/* Form */}
       <div
         className={`overflow-hidden transition-all duration-500 ease-in-out ${
           showForm ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
@@ -97,9 +123,10 @@ export default function CoursePage() {
         )}
       </div>
 
+      {/* Courses List */}
       <CourseList
-        courses={courses}
-        instructors={instructors}
+        courses={courses || []}
+        instructors={instructors || []}
         onUpdate={handleUpdateCourse}
         onDelete={handleDeleteCourse}
         cardClassName="bg-gradient-to-r from-green-100 via-blue-100 to-purple-100 hover:shadow-2xl rounded-2xl p-5 transition transform hover:-translate-y-1"
